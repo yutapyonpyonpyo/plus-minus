@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>収支トラッカー</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:#0f1730;
+      --card2:#0c142b;
+      --border:rgba(148,163,184,.18);
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#3b82f6;
+      --danger:#ef4444;
+      --success:#22c55e;
+      --shadow:0 18px 30px rgba(0,0,0,.45);
+      --r-lg:16px;
+      --r-md:12px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif;
+      color:var(--text);
+      background: radial-gradient(circle at top, #1f2a4a 0, #070a14 55%);
+      min-height:100vh;
+    }
+    .app{
+      max-width:1100px;
+      margin:0 auto;
+      padding:18px 14px 90px;
+    }
+    header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .brand h1{
+      margin:0;
+      font-size:1.18rem;
+      font-weight:700;
+      letter-spacing:.02em;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .logo{
+      width:26px;height:26px;border-radius:999px;
+      background: radial-gradient(circle at 30% 0, #60a5fa, #3b82f6);
+      display:inline-flex;align-items:center;justify-content:center;
+      font-weight:800;color:white;font-size:.9rem;
+      box-shadow:0 0 0 1px rgba(0,0,0,.35), 0 18px 30px rgba(0,0,0,.45);
+    }
+    .subtitle{color:var(--muted);font-size:.82rem}
+
+    .card{
+      background: radial-gradient(circle at top left, var(--card), #070a14);
+      border:1px solid var(--border);
+      border-radius:var(--r-lg);
+      box-shadow:var(--shadow);
+      padding:14px 14px 16px;
+      position:relative;
+      overflow:hidden;
+    }
+    .card::before{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(circle at top right, #1d4ed8 0, transparent 60%);
+      opacity:.12;
+      pointer-events:none;
+    }
+    .card > *{position:relative; z-index:1;}
+
+    .row{display:grid; gap:14px;}
+    @media(min-width:900px){
+      .row.two{grid-template-columns: 1.15fr .85fr;}
+      .row.twoWide{grid-template-columns: 1.2fr .8fr;}
+    }
+
+    /* Top nav (simple, modern) */
+    .topnav{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .chip{
+      border:1px solid var(--border);
+      background: rgba(15,23,48,.55);
+      color:var(--text);
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:.82rem;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+    .chip:hover{transform:translateY(-1px); border-color: rgba(59,130,246,.5);}
+    .chip.active{
+      border-color: rgba(59,130,246,.7);
+      background: rgba(59,130,246,.18);
+    }
+
+    /* Bottom tab (mobile first) */
+    .tabbar{
+      position:fixed;
+      left:0; right:0; bottom:0;
+      background: rgba(10,14,26,.75);
+      backdrop-filter: blur(10px);
+      border-top:1px solid var(--border);
+      padding:10px 10px env(safe-area-inset-bottom);
+      z-index:50;
+    }
+    .tabs{
+      max-width:1100px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+    .tab{
+      border:1px solid var(--border);
+      background: rgba(15,23,48,.55);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 10px;
+      font-size:.8rem;
+      text-decoration:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      cursor:pointer;
+      transition: background .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+    .tab.active{
+      border-color: rgba(59,130,246,.7);
+      background: rgba(59,130,246,.18);
+    }
+
+    /* Headings */
+    .h2{
+      margin:0 0 10px;
+      font-size:.95rem;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .badge{
+      font-size:.72rem;
+      color:var(--muted);
+      border:1px solid var(--border);
+      padding:2px 8px;
+      border-radius:999px;
+      white-space:nowrap;
+    }
+
+    /* KPI */
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+    }
+    @media(max-width:650px){
+      .kpis{grid-template-columns:1fr;}
+    }
+    .kpi{
+      background: linear-gradient(135deg, rgba(7,10,20,.75), rgba(15,23,48,.6));
+      border:1px solid var(--border);
+      border-radius:var(--r-md);
+      padding:10px 10px;
+    }
+    .kpi .label{color:var(--muted); font-size:.75rem; margin-bottom:4px;}
+    .kpi .value{font-size:1.25rem; font-weight:800; letter-spacing:.02em;}
+    .kpi .value.positive{color:var(--success)}
+    .kpi .value.negative{color:var(--danger)}
+    .kpi .sub{color:var(--muted); font-size:.72rem; margin-top:2px;}
+
+    /* Calendar */
+    .cal-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .cal-title{
+      font-size:1.02rem;
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+    .cal-controls{
+      display:flex; gap:8px;
+    }
+    .btn{
+      border:1px solid var(--border);
+      background: rgba(15,23,48,.55);
+      color:var(--text);
+      border-radius:12px;
+      padding:8px 10px;
+      font-size:.82rem;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+    .btn:hover{transform:translateY(-1px); border-color: rgba(59,130,246,.5); }
+    .btn:active{transform:translateY(0);}
+
+    .dow{
+      display:grid;
+      grid-template-columns:repeat(7,1fr);
+      gap:8px;
+      margin-bottom:8px;
+      color:var(--muted);
+      font-size:.72rem;
+      padding:0 2px;
+    }
+    .dow div{ text-align:center; }
+
+    .gridcal{
+      display:grid;
+      grid-template-columns:repeat(7,1fr);
+      gap:8px;
+    }
+
+    .day{
+      border:1px solid var(--border);
+      background: rgba(15,23,48,.45);
+      border-radius:14px;
+      padding:8px 8px 10px;
+      min-height:74px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .day:hover{transform: translateY(-1px); border-color: rgba(59,130,246,.45);}
+    .day.muted{
+      opacity:.45;
+      cursor:default;
+    }
+    .day .dnum{
+      font-size:.75rem;
+      color:rgba(229,231,235,.92);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .day .amt{
+      font-size:.95rem;
+      font-weight:800;
+      letter-spacing:.01em;
+    }
+    .day .amt.positive{color:var(--success)}
+    .day .amt.negative{color:var(--danger)}
+    .day .tiny{
+      font-size:.68rem;
+      color:var(--muted);
+      margin-top:auto;
+      display:flex;
+      justify-content:space-between;
+      gap:6px;
+    }
+    .day.selected{
+      border-color: rgba(59,130,246,.9);
+      box-shadow: 0 0 0 1px rgba(59,130,246,.4), 0 18px 30px rgba(0,0,0,.35);
+    }
+
+    /* Heat overlay (intensity) */
+    .day::before{
+      content:"";
+      position:absolute; inset:0;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .12s ease;
+    }
+    .day.win::before{
+      background: radial-gradient(circle at 30% 0, rgba(34,197,94,.55), transparent 65%);
+    }
+    .day.lose::before{
+      background: radial-gradient(circle at 30% 0, rgba(239,68,68,.55), transparent 65%);
+    }
+
+    /* Detail */
+    .detail{
+      margin-top:12px;
+      border-top: 1px dashed rgba(148,163,184,.25);
+      padding-top:10px;
+      display:grid;
+      gap:10px;
+    }
+    .detail .headline{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .detail .headline .date{
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+    .detail .mini{
+      color:var(--muted);
+      font-size:.78rem;
+    }
+    .mini-cards{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+    }
+    @media(max-width:650px){
+      .mini-cards{grid-template-columns:1fr;}
+    }
+    .mini-card{
+      border:1px solid var(--border);
+      background: rgba(15,23,48,.45);
+      border-radius:12px;
+      padding:10px;
+    }
+    .mini-card .label{color:var(--muted);font-size:.72rem;margin-bottom:4px}
+    .mini-card .value{font-weight:800;font-size:1rem}
+    .mini-card .value.positive{color:var(--success)}
+    .mini-card .value.negative{color:var(--danger)}
+
+    /* Table */
+    .tablewrap{
+      border:1px solid var(--border);
+      background: rgba(15,23,48,.45);
+      border-radius:14px;
+      overflow:auto;
+      max-height:360px;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:.8rem;
+      white-space:nowrap;
+    }
+    thead{
+      position:sticky;
+      top:0;
+      background: rgba(7,10,20,.95);
+      z-index:5;
+    }
+    th,td{
+      padding:8px 10px;
+      border-bottom:1px solid rgba(148,163,184,.12);
+      text-align:left;
+    }
+    th{color:var(--muted); font-weight:700; font-size:.75rem;}
+    td.r{text-align:right}
+    td.c{text-align:center}
+    tr:hover td{background: rgba(59,130,246,.10);}
+
+    /* Inputs */
+    .form{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    @media(max-width:720px){
+      .form{grid-template-columns:1fr;}
+    }
+    .field label{
+      display:block;
+      color:var(--muted);
+      font-size:.75rem;
+      margin-bottom:3px;
+    }
+    input, select, textarea{
+      width:100%;
+      padding:9px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(7,10,20,.75);
+      color:var(--text);
+      outline:none;
+    }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(59,130,246,.85);
+      box-shadow: 0 0 0 1px rgba(59,130,246,.35);
+    }
+    textarea{min-height:86px; resize:vertical;}
+    .span2{grid-column:1/-1;}
+    .actions{grid-column:1/-1; display:flex; justify-content:flex-end; gap:10px;}
+    .primary{
+      background: linear-gradient(135deg, #2563eb, #60a5fa);
+      border:none;
+      box-shadow: 0 12px 25px rgba(37,99,235,.5);
+      font-weight:800;
+    }
+    .ghost{
+      background: rgba(15,23,48,.55);
+    }
+    .note{color:var(--muted); font-size:.78rem; margin-top:8px; line-height:1.4;}
+    .hidden{display:none !important;}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <h1><span class="logo">G</span>収支トラッカー</h1>
+        <div class="subtitle">Dashboard / Add / History / Tags</div>
+      </div>
+
+      <nav class="topnav" id="topnav">
+        <a class="chip" href="#/dashboard">Home</a>
+        <a class="chip" href="#/add">Add</a>
+        <a class="chip" href="#/history">History</a>
+        <a class="chip" href="#/tags">Tags</a>
+      </nav>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page">
+      <div class="row twoWide">
+        <div class="card">
+          <div class="h2">
+            <span>今月のサマリー</span>
+            <span class="badge" id="dashMonthLabel"></span>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi">
+              <div class="label">今月の合計収支</div>
+              <div class="value" id="kpiMonthBalance">-</div>
+              <div class="sub">（セッション合計）</div>
+            </div>
+            <div class="kpi">
+              <div class="label">今月のプレイ時間</div>
+              <div class="value" id="kpiMonthTime">-</div>
+              <div class="sub">（合計）</div>
+            </div>
+            <div class="kpi">
+              <div class="label">今月の平均時給</div>
+              <div class="value" id="kpiMonthHourly">-</div>
+              <div class="sub">（合計収支 ÷ 合計時間）</div>
+            </div>
+          </div>
+
+          <div class="detail hidden" id="dayDetail">
+            <div class="headline">
+              <div class="date" id="detailDate">-</div>
+              <div class="mini" id="detailMeta">-</div>
+            </div>
+
+            <div class="mini-cards">
+              <div class="mini-card">
+                <div class="label">日次収支</div>
+                <div class="value" id="detailBalance">-</div>
+              </div>
+              <div class="mini-card">
+                <div class="label">日次プレイ時間</div>
+                <div class="value" id="detailTime">-</div>
+              </div>
+              <div class="mini-card">
+                <div class="label">日次時給</div>
+                <div class="value" id="detailHourly">-</div>
+              </div>
+            </div>
+
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>開始</th><th>終了</th><th>大タグ</th><th>中タグ</th>
+                    <th class="r">投資</th><th class="r">回収</th><th class="r">収支</th>
+                  </tr>
+                </thead>
+                <tbody id="detailTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="cal-header">
+            <div>
+              <div class="h2" style="margin:0;">
+                <span>日次収支カレンダー</span>
+                <span class="badge">クリックで詳細</span>
+              </div>
+              <div class="note" style="margin-top:6px;">
+                各日のセルに「±金額」。背景の濃さ＝勝ち負けの大きさ。
+              </div>
+            </div>
+          </div>
+
+          <div class="cal-header" style="margin-top:10px;">
+            <div class="cal-title" id="calTitle">-</div>
+            <div class="cal-controls">
+              <button class="btn" id="btnPrev">←</button>
+              <button class="btn" id="btnToday">今月</button>
+              <button class="btn" id="btnNext">→</button>
+            </div>
+          </div>
+
+          <div class="dow">
+            <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+          </div>
+
+          <div class="gridcal" id="calGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADD -->
+    <section id="page-add" class="page hidden">
+      <div class="row two">
+        <div class="card">
+          <div class="h2"><span>セッション入力</span><span class="badge">Add</span></div>
+
+          <form class="form" id="addForm">
+            <div class="field">
+              <label>日付</label>
+              <input type="date" id="fDate" required />
+            </div>
+            <div class="field">
+              <label>大タグ（必須）</label>
+              <select id="fMain" required>
+                <option value="">（タグ管理で追加）</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>開始時刻</label>
+              <input type="time" id="fStart" required />
+            </div>
+            <div class="field">
+              <label>終了時刻</label>
+              <input type="time" id="fEnd" required />
+            </div>
+
+            <div class="field">
+              <label>投資（円）</label>
+              <input type="number" id="fInvest" min="0" step="100" required />
+            </div>
+            <div class="field">
+              <label>回収（円）</label>
+              <input type="number" id="fReturn" min="0" step="100" required />
+            </div>
+
+            <div class="field span2">
+              <label>中タグ（任意）</label>
+              <select id="fSub">
+                <option value="">（中タグなし）</option>
+              </select>
+            </div>
+
+            <div class="field span2">
+              <label>メモ（任意）</label>
+              <textarea id="fMemo" placeholder="例：◯◯店、台番、メモ"></textarea>
+            </div>
+
+            <div class="actions">
+              <button type="button" class="btn ghost" id="btnGoTags">タグ管理へ</button>
+              <button type="submit" class="btn primary">＋ 追加</button>
+            </div>
+          </form>
+
+          <div class="note">
+            入力は「選ぶだけ」。タグ追加は Tags で行う。
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="h2"><span>直近の入力</span><span class="badge">Last 5</span></div>
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>日付</th><th>大</th><th>中</th><th class="r">収支</th>
+                </tr>
+              </thead>
+              <tbody id="addLast5"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="page-history" class="page hidden">
+      <div class="card">
+        <div class="h2"><span>履歴</span><span class="badge">History</span></div>
+
+        <div class="row" style="gap:10px; margin-bottom:10px;">
+          <div class="row two" style="gap:10px;">
+            <div class="field">
+              <label>期間</label>
+              <select id="hPeriod">
+                <option value="thisMonth">今月</option>
+                <option value="lastMonth">先月</option>
+                <option value="thisYear">今年</option>
+                <option value="last30">直近30日</option>
+                <option value="all">すべて</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>大タグ</label>
+              <select id="hMain">
+                <option value="">すべて</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>中タグ検索</label>
+            <input type="text" id="hSubSearch" placeholder="例：グール" />
+          </div>
+        </div>
+
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>日付</th><th>開始</th><th>終了</th><th>大タグ</th><th>中タグ</th>
+                <th class="r">投資</th><th class="r">回収</th><th class="r">収支</th><th class="c">時間</th><th class="r">時給</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+        <div class="note" id="historyEmpty" style="display:none;">データがありません。</div>
+      </div>
+    </section>
+
+    <!-- TAGS -->
+    <section id="page-tags" class="page hidden">
+      <div class="row two">
+        <div class="card">
+          <div class="h2"><span>タグ管理</span><span class="badge">Master</span></div>
+
+          <div class="form" style="margin-top:2px;">
+            <div class="field">
+              <label>大タグを追加</label>
+              <input type="text" id="tNewMain" placeholder="例：スロット" />
+            </div>
+            <div class="actions" style="grid-column:1/-1; justify-content:flex-start;">
+              <button class="btn primary" id="tAddMain" type="button">＋ 大タグ追加</button>
+            </div>
+
+            <div class="field span2">
+              <label>中タグを追加する大タグ</label>
+              <select id="tParentMain">
+                <option value="">（大タグを選択）</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>中タグ名</label>
+              <input type="text" id="tNewSub" placeholder="例：スマスロ東京グール" />
+            </div>
+            <div class="actions" style="grid-column:1/-1; justify-content:flex-start;">
+              <button class="btn primary" id="tAddSub" type="button">＋ 中タグ追加</button>
+            </div>
+          </div>
+
+          <div class="note">
+            ※削除・編集は次のバージョンで追加できる（まずは登録→運用優先）
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="h2"><span>タグ一覧</span><span class="badge">List</span></div>
+          <div id="tagList"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- bottom tabs -->
+  <div class="tabbar">
+    <div class="tabs" id="tabs">
+      <a class="tab" href="#/dashboard">Home</a>
+      <a class="tab" href="#/add">Add</a>
+      <a class="tab" href="#/history">History</a>
+      <a class="tab" href="#/tags">Tags</a>
+    </div>
+  </div>
+
+  <script>
+    // ===== Storage =====
+    const KEY_RECORDS = "gambleRecords_vB";
+    const KEY_TAGS = "gambleTags_vB";
+
+    // ===== State =====
+    let records = [];
+    let tags = []; // [{id,name,subs:[{id,name}]}]
+
+    // Dashboard calendar view month
+    let viewYear, viewMonth; // month: 0-11
+    let selectedDateStr = null;
+
+    // ===== Utils =====
+    const yen = (n) => (n ?? 0).toLocaleString("ja-JP");
+    const money = (n) => `${yen(n)}円`;
+
+    function genId(prefix){
+      return prefix + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7);
+    }
+
+    function toMin(t){
+      const [h,m] = t.split(":").map(Number);
+      return h*60 + m;
+    }
+
+    function fmtMinutes(mins){
+      if(!mins || mins<=0) return "0h";
+      const h = Math.floor(mins/60);
+      const m = mins%60;
+      if(h===0) return `${m}m`;
+      if(m===0) return `${h}h`;
+      return `${h}h ${m}m`;
+    }
+
+    function load(){
+      try{
+        records = JSON.parse(localStorage.getItem(KEY_RECORDS) || "[]");
+        tags = JSON.parse(localStorage.getItem(KEY_TAGS) || "[]");
+      }catch(e){
+        records = [];
+        tags = [];
+      }
+    }
+    function save(){
+      localStorage.setItem(KEY_RECORDS, JSON.stringify(records));
+      localStorage.setItem(KEY_TAGS, JSON.stringify(tags));
+    }
+
+    function findMain(id){ return tags.find(t=>t.id===id) || null; }
+    function findSub(id){
+      for(const mt of tags){
+        const st = mt.subs.find(s=>s.id===id);
+        if(st) return st;
+      }
+      return null;
+    }
+
+    function sameMonth(dateStr, y, m){
+      const d = new Date(dateStr);
+      return d.getFullYear()===y && d.getMonth()===m;
+    }
+
+    function isWithinLast30(dateStr){
+      const target = new Date(dateStr);
+      const today = new Date();
+      const diffDays = (today - target) / (1000*60*60*24);
+      return diffDays >= 0 && diffDays <= 30;
+    }
+
+    // ===== Routing =====
+    const pages = ["dashboard","add","history","tags"];
+
+    function setActiveNav(route){
+      document.querySelectorAll("#topnav .chip").forEach(a=>{
+        a.classList.toggle("active", a.getAttribute("href")==="#/"+route);
+      });
+      document.querySelectorAll("#tabs .tab").forEach(a=>{
+        a.classList.toggle("active", a.getAttribute("href")==="#/"+route);
+      });
+    }
+
+    function showPage(route){
+      pages.forEach(p=>{
+        document.getElementById("page-"+p).classList.toggle("hidden", p!==route);
+      });
+      setActiveNav(route);
+
+      // page-specific refresh
+      if(route==="dashboard") renderDashboard();
+      if(route==="add") renderAdd();
+      if(route==="history") renderHistory();
+      if(route==="tags") renderTags();
+    }
+
+    function router(){
+      const hash = location.hash || "#/dashboard";
+      const route = hash.replace("#/","") || "dashboard";
+      showPage(pages.includes(route) ? route : "dashboard");
+    }
+
+    // ===== Aggregations =====
+    function dailyAggForMonth(y,m){
+      // returns Map(dateStr => {balance, minutes, sessions[]})
+      const map = new Map();
+      const monthRecords = records.filter(r => sameMonth(r.date, y, m));
+      for(const r of monthRecords){
+        const key = r.date;
+        if(!map.has(key)){
+          map.set(key, {balance:0, minutes:0, sessions:[]});
+        }
+        const obj = map.get(key);
+        obj.balance += (r.balance || 0);
+        obj.minutes += (r.playMinutes || 0);
+        obj.sessions.push(r);
+      }
+      return map;
+    }
+
+    function monthKpi(y,m){
+      const monthRecords = records.filter(r => sameMonth(r.date, y, m));
+      const bal = monthRecords.reduce((a,r)=>a+(r.balance||0),0);
+      const mins = monthRecords.reduce((a,r)=>a+(r.playMinutes||0),0);
+      const hours = mins/60;
+      const hourly = hours>0 ? Math.round(bal/hours) : null;
+      return {bal, mins, hourly};
+    }
+
+    // ===== Dashboard (Calendar) =====
+    function setKpiValue(elId, value, cls){
+      const el = document.getElementById(elId);
+      el.classList.remove("positive","negative");
+      el.textContent = value;
+      if(cls) el.classList.add(cls);
+    }
+
+    function renderDashboard(){
+      const now = new Date();
+      if(viewYear===undefined || viewMonth===undefined){
+        viewYear = now.getFullYear();
+        viewMonth = now.getMonth();
+      }
+
+      // KPI for current month (not view month?) -> You asked home main for "その月"
+      // We'll use "view month" so switching month updates KPI too.
+      const k = monthKpi(viewYear, viewMonth);
+
+      document.getElementById("dashMonthLabel").textContent =
+        `${viewYear}年${viewMonth+1}月`;
+
+      setKpiValue(
+        "kpiMonthBalance",
+        money(k.bal),
+        k.bal>0 ? "positive" : k.bal<0 ? "negative" : null
+      );
+      document.getElementById("kpiMonthTime").textContent = fmtMinutes(k.mins);
+      setKpiValue(
+        "kpiMonthHourly",
+        k.hourly===null ? "-" : `${yen(k.hourly)}円/h`,
+        k.hourly>0 ? "positive" : k.hourly<0 ? "negative" : null
+      );
+
+      renderCalendar(viewYear, viewMonth);
+      renderSelectedDayDetail(); // keep selection if any
+    }
+
+function renderCalendar(y, m) {
+  const title = document.getElementById("calTitle");
+  title.textContent = `${y}年${m + 1}月`;
+
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = "";
+
+  // 当月の日次集計（キーは YYYY-MM-DD）
+  const agg = dailyAggForMonth(y, m);
+
+  // 濃淡の基準：当月の日次収支の最大絶対値
+  let maxAbs = 0;
+  for (const [, v] of agg) maxAbs = Math.max(maxAbs, Math.abs(v.balance));
+  if (maxAbs === 0) maxAbs = 1;
+
+  // 6週×7日で固定（表示が崩れない）
+  const firstOfMonth = new Date(y, m, 1);
+  const startDow = firstOfMonth.getDay(); // 0=日
+  const startDate = new Date(y, m, 1 - startDow); // カレンダー左上の日付
+
+  // 42マスを作る
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+
+    const cellYear = d.getFullYear();
+    const cellMonth = d.getMonth(); // 0-11
+    const dayNum = d.getDate();
+
+    const dateStr =
+      `${cellYear}-${String(cellMonth + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+
+    const isThisMonth = (cellYear === y && cellMonth === m);
+
+    // 当月のみ日次収支を参照（前後月は空扱い）
+    const v = isThisMonth ? (agg.get(dateStr) || null) : null;
+
+    const bal = v ? v.balance : null;
+    const mins = v ? v.minutes : 0;
+    const sessionsCount = v ? v.sessions.length : 0;
+
+    const cell = document.createElement("div");
+    cell.className = "day";
+
+    // 前後月は薄く
+    if (!isThisMonth) cell.classList.add("muted");
+
+    // 選択状態
+    if (dateStr === selectedDateStr) cell.classList.add("selected");
+
+    // 背景の濃淡（当月＆データありのときだけ）
+    const overlay = document.createElement("div");
+    overlay.style.position = "absolute";
+    overlay.style.inset = "0";
+    overlay.style.pointerEvents = "none";
+    const intensity = v && bal !== 0 ? Math.min(1, Math.abs(bal) / maxAbs) : 0;
+    overlay.style.opacity = String(intensity);
+    overlay.style.transition = "opacity .12s ease";
+    overlay.style.background =
+      v && bal > 0
+        ? "radial-gradient(circle at 30% 0, rgba(34,197,94,.55), transparent 65%)"
+        : v && bal < 0
+          ? "radial-gradient(circle at 30% 0, rgba(239,68,68,.55), transparent 65%)"
+          : "transparent";
+    cell.appendChild(overlay);
+
+    // 金額表示（A：そのまま）
+    const amtText = v
+      ? (bal > 0 ? `+${yen(bal)}` : bal < 0 ? `${yen(bal)}` : "0")
+      : (isThisMonth ? "—" : ""); // 前後月は何も表示しない
+
+    const amtCls = v ? (bal > 0 ? "positive" : bal < 0 ? "negative" : "") : "";
+    const timeText = v ? fmtMinutes(mins) : "";
+    const cntText = v ? `${sessionsCount}件` : "";
+
+    const inner = document.createElement("div");
+    inner.style.position = "relative";
+    inner.style.zIndex = "1";
+    inner.innerHTML = `
+      <div class="dnum">
+        <span>${dayNum}</span>
+        <span style="color:rgba(156,163,175,.9); font-size:.68rem;">${cntText}</span>
+      </div>
+      <div class="amt ${amtCls}">${amtText}</div>
+      <div class="tiny"><span>${timeText}</span><span></span></div>
+    `;
+    cell.appendChild(inner);
+
+    // クリック：当月で「データがある日」だけ詳細表示（今の挙動を維持）
+    cell.addEventListener("click", () => {
+      if (!isThisMonth) return;
+      if (!v) return;
+
+      selectedDateStr = dateStr;
+      document.querySelectorAll(".day.selected").forEach(x => x.classList.remove("selected"));
+      cell.classList.add("selected");
+      renderSelectedDayDetail();
+    });
+
+    grid.appendChild(cell);
+  }
+}
+
+
+      for(let d=1; d<=daysInMonth; d++){
+        const dateStr = `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const v = agg.get(dateStr) || null;
+
+        const bal = v ? v.balance : null;
+        const mins = v ? v.minutes : 0;
+        const sessionsCount = v ? v.sessions.length : 0;
+
+        const cell = document.createElement("div");
+        cell.className = "day";
+
+        if(dateStr === selectedDateStr) cell.classList.add("selected");
+        if(!v) cell.classList.add("muted");
+
+        // heat
+        if(v && bal!==0){
+          const intensity = Math.min(1, Math.abs(bal)/maxAbs);
+          cell.style.setProperty("--heat", intensity.toFixed(3));
+          if(bal>0) cell.classList.add("win");
+          if(bal<0) cell.classList.add("lose");
+          cell.style.setProperty("opacity", "1");
+          // opacity via ::before
+          cell.style.setProperty("--overlayOpacity", intensity);
+          cell.style.setProperty("--dummy", "0");
+          cell.style.setProperty("position", "relative");
+          cell.style.setProperty("overflow", "hidden");
+          // set ::before opacity by inline style using CSS variable trick
+          cell.style.setProperty("--beforeOpacity", intensity.toFixed(3));
+          cell.style.setProperty("--x", "0");
+          // We'll just set directly:
+          cell.style.setProperty("set", "0");
+          cell.style.setProperty("contain", "paint");
+          // Actually simplest: set style attribute that CSS reads?
+          // We'll set data attribute and use inline style on ::before by toggling opacity:
+          cell.style.setProperty("--ov", intensity.toFixed(3));
+          cell.style.setProperty(" ");
+          cell.style.setProperty(" ");
+          cell.style.setProperty(" ");
+          // Use direct opacity:
+          cell.style.setProperty("--internal", intensity);
+          cell.style.setProperty("--t", "0");
+          cell.style.setProperty("--y", "0");
+          cell.style.setProperty("--m", "0");
+          // In the end, we can set style.opacity isn't for ::before; use a small hack:
+          // We'll just set a second overlay div instead of ::before to control opacity cleanly.
+        }
+
+        // We'll implement overlay div (more reliable).
+        const overlay = document.createElement("div");
+        overlay.style.position="absolute";
+        overlay.style.inset="0";
+        overlay.style.pointerEvents="none";
+        overlay.style.opacity = v && bal!==0 ? String(Math.min(1, Math.abs(bal)/maxAbs)) : "0";
+        overlay.style.transition="opacity .12s ease";
+        overlay.style.background = v && bal>0
+          ? "radial-gradient(circle at 30% 0, rgba(34,197,94,.55), transparent 65%)"
+          : v && bal<0
+            ? "radial-gradient(circle at 30% 0, rgba(239,68,68,.55), transparent 65%)"
+            : "transparent";
+        cell.appendChild(overlay);
+
+        const amtText = v ? (bal>0?`+${yen(bal)}`: bal<0?`${yen(bal)}`:`0`) : "—";
+        const amtCls = v ? (bal>0?"positive": bal<0?"negative":"") : "";
+        const timeText = v ? fmtMinutes(mins) : "";
+        const cntText = v ? `${sessionsCount}件` : "";
+
+        const inner = document.createElement("div");
+        inner.style.position="relative";
+        inner.style.zIndex="1";
+        inner.innerHTML = `
+          <div class="dnum"><span>${d}</span><span style="color:rgba(156,163,175,.9); font-size:.68rem;">${cntText}</span></div>
+          <div class="amt ${amtCls}">${amtText}</div>
+          <div class="tiny"><span>${timeText}</span><span></span></div>
+        `;
+        cell.appendChild(inner);
+
+        cell.addEventListener("click", ()=>{
+          if(!v) return; // no data -> ignore
+          selectedDateStr = dateStr;
+          // update selection visuals
+          document.querySelectorAll(".day.selected").forEach(x=>x.classList.remove("selected"));
+          cell.classList.add("selected");
+          renderSelectedDayDetail();
+        });
+
+        grid.appendChild(cell);
+      }
+
+      // trailing blanks to fill row (optional)
+      // keep clean: do nothing
+    }
+
+    function renderSelectedDayDetail(){
+      const box = document.getElementById("dayDetail");
+      if(!selectedDateStr){
+        box.classList.add("hidden");
+        return;
+      }
+
+      const y = viewYear, m = viewMonth;
+      if(!sameMonth(selectedDateStr, y, m)){
+        box.classList.add("hidden");
+        return;
+      }
+
+      const agg = dailyAggForMonth(y,m);
+      const v = agg.get(selectedDateStr);
+      if(!v){
+        box.classList.add("hidden");
+        return;
+      }
+
+      box.classList.remove("hidden");
+
+      document.getElementById("detailDate").textContent = `${selectedDateStr} の内訳`;
+      document.getElementById("detailMeta").textContent = `${v.sessions.length}件`;
+
+      const bal = v.balance;
+      const mins = v.minutes;
+      const hours = mins/60;
+      const hourly = hours>0 ? Math.round(bal/hours) : null;
+
+      const set = (id, val, cls) => {
+        const el = document.getElementById(id);
+        el.classList.remove("positive","negative");
+        el.textContent = val;
+        if(cls) el.classList.add(cls);
+      };
+
+      set("detailBalance", money(bal), bal>0?"positive": bal<0?"negative": null);
+      document.getElementById("detailTime").textContent = fmtMinutes(mins);
+      set("detailHourly", hourly===null? "-" : `${yen(hourly)}円/h`, hourly>0?"positive": hourly<0?"negative": null);
+
+      const tbody = document.getElementById("detailTableBody");
+      tbody.innerHTML = "";
+      v.sessions
+        .slice()
+        .sort((a,b)=>toMin(a.start)-toMin(b.start))
+        .forEach(r=>{
+          const mt = findMain(r.mainTagId);
+          const st = findSub(r.subTagId);
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${r.start}</td>
+            <td>${r.end}</td>
+            <td>${mt?mt.name:"（不明）"}</td>
+            <td>${st?st.name:"—"}</td>
+            <td class="r">${yen(r.invest)}</td>
+            <td class="r">${yen(r.return)}</td>
+            <td class="r">${r.balance>0?"+":""}${yen(r.balance)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+    }
+
+    // Calendar controls
+    function prevMonth(){
+      if(viewMonth===0){ viewMonth=11; viewYear--; } else viewMonth--;
+      selectedDateStr = null;
+      renderDashboard();
+    }
+    function nextMonth(){
+      if(viewMonth===11){ viewMonth=0; viewYear++; } else viewMonth++;
+      selectedDateStr = null;
+      renderDashboard();
+    }
+    function goThisMonth(){
+      const now = new Date();
+      viewYear = now.getFullYear();
+      viewMonth = now.getMonth();
+      selectedDateStr = null;
+      renderDashboard();
+    }
+
+    // ===== Add Page =====
+    function refreshTagSelects(){
+      // Add page selects
+      const fMain = document.getElementById("fMain");
+      const fSub = document.getElementById("fSub");
+
+      const hMain = document.getElementById("hMain");
+      const tParentMain = document.getElementById("tParentMain");
+
+      const keepFMain = fMain.value;
+      const keepHMain = hMain.value;
+      const keepParent = tParentMain.value;
+
+      // reset
+      fMain.innerHTML = "";
+      if(!tags.length){
+        const op = document.createElement("option");
+        op.value = ""; op.textContent = "（タグ管理で追加）";
+        fMain.appendChild(op);
+        fMain.disabled = true;
+      }else{
+        const ph = document.createElement("option");
+        ph.value=""; ph.textContent="大タグを選択";
+        fMain.appendChild(ph);
+        tags.slice().sort((a,b)=>a.name.localeCompare(b.name,"ja")).forEach(t=>{
+          const op=document.createElement("option");
+          op.value=t.id; op.textContent=t.name;
+          fMain.appendChild(op);
+        });
+        fMain.disabled = false;
+      }
+      if(keepFMain && tags.some(t=>t.id===keepFMain)) fMain.value = keepFMain;
+
+      // history main filter
+      hMain.innerHTML = `<option value="">すべて</option>`;
+      tags.slice().sort((a,b)=>a.name.localeCompare(b.name,"ja")).forEach(t=>{
+        const op=document.createElement("option");
+        op.value=t.id; op.textContent=t.name;
+        hMain.appendChild(op);
+      });
+      if(keepHMain && tags.some(t=>t.id===keepHMain)) hMain.value = keepHMain;
+
+      // tag parent select
+      tParentMain.innerHTML = `<option value="">（大タグを選択）</option>`;
+      tags.slice().sort((a,b)=>a.name.localeCompare(b.name,"ja")).forEach(t=>{
+        const op=document.createElement("option");
+        op.value=t.id; op.textContent=t.name;
+        tParentMain.appendChild(op);
+      });
+      if(keepParent && tags.some(t=>t.id===keepParent)) tParentMain.value = keepParent;
+
+      refreshSubForAdd();
+    }
+
+    function refreshSubForAdd(){
+      const fMain = document.getElementById("fMain");
+      const fSub = document.getElementById("fSub");
+      const keep = fSub.value;
+
+      fSub.innerHTML = `<option value="">（中タグなし）</option>`;
+      const mt = findMain(fMain.value);
+      if(mt){
+        mt.subs
+          .slice()
+          .sort((a,b)=>a.name.localeCompare(b.name,"ja"))
+          .forEach(s=>{
+            const op=document.createElement("option");
+            op.value=s.id; op.textContent=s.name;
+            fSub.appendChild(op);
+          });
+      }
+      // restore if possible
+      if(mt && keep && mt.subs.some(s=>s.id===keep)) fSub.value = keep;
+    }
+
+    function renderAdd(){
+      refreshTagSelects();
+
+      const today = new Date();
+      const fDate = document.getElementById("fDate");
+      if(!fDate.value) fDate.valueAsDate = today;
+
+      // last 5
+      const tbody = document.getElementById("addLast5");
+      tbody.innerHTML = "";
+      const last = records.slice().sort((a,b)=> (b._created||0)-(a._created||0)).slice(0,5);
+      if(!last.length){
+        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted); text-align:center;">まだありません</td></tr>`;
+        return;
+      }
+      last.forEach(r=>{
+        const mt = findMain(r.mainTagId);
+        const st = findSub(r.subTagId);
+        const tr=document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.date}</td>
+          <td>${mt?mt.name:"-"}</td>
+          <td>${st?st.name:"-"}</td>
+          <td class="r">${r.balance>0?"+":""}${yen(r.balance)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function addRecordFromForm(e){
+      e.preventDefault();
+
+      if(!tags.length){
+        alert("まず Tags で大タグを登録してください。");
+        location.hash = "#/tags";
+        return;
+      }
+
+      const date = document.getElementById("fDate").value;
+      const mainTagId = document.getElementById("fMain").value;
+      const subTagId = document.getElementById("fSub").value || null;
+      const start = document.getElementById("fStart").value;
+      const end = document.getElementById("fEnd").value;
+      const invest = Number(document.getElementById("fInvest").value || 0);
+      const ret = Number(document.getElementById("fReturn").value || 0);
+      const memo = document.getElementById("fMemo").value.trim();
+
+      if(!date || !start || !end){
+        alert("日付・開始・終了は必須。");
+        return;
+      }
+      if(!mainTagId){
+        alert("大タグを選択してください。");
+        return;
+      }
+      if(invest<0 || ret<0){
+        alert("投資/回収は0以上。");
+        return;
+      }
+
+      let s = toMin(start);
+      let ed = toMin(end);
+      if(ed < s) ed += 24*60; // overnight
+      const playMinutes = Math.max(0, ed - s);
+
+      const balance = ret - invest;
+      const hours = playMinutes/60;
+      const hourly = hours>0 ? Math.round(balance/hours) : null;
+
+      records.push({
+        _created: Date.now(),
+        date, start, end,
+        invest, return: ret,
+        mainTagId, subTagId,
+        memo,
+        balance,
+        playMinutes,
+        hourly
+      });
+
+      save();
+
+      // reset partial
+      document.getElementById("fInvest").value = "";
+      document.getElementById("fReturn").value = "";
+      document.getElementById("fMemo").value = "";
+
+      // update other pages
+      renderAdd();
+      // also update dashboard if month matches current view
+      renderDashboard();
+    }
+
+    // ===== History Page =====
+    function filterRecords(){
+      const period = document.getElementById("hPeriod").value;
+      const main = document.getElementById("hMain").value;
+      const subSearch = document.getElementById("hSubSearch").value.trim().toLowerCase();
+
+      const now = new Date();
+      const y = now.getFullYear(), m = now.getMonth();
+      const lm = new Date(y, m-1, 1);
+      const ly = lm.getFullYear(), lmm = lm.getMonth();
+
+      return records.filter(r=>{
+        const d = new Date(r.date);
+        if(isNaN(d)) return false;
+
+        if(period==="thisMonth" && !sameMonth(r.date, y, m)) return false;
+        if(period==="lastMonth" && !sameMonth(r.date, ly, lmm)) return false;
+        if(period==="thisYear" && d.getFullYear()!==y) return false;
+        if(period==="last30" && !isWithinLast30(r.date)) return false;
+
+        if(main && r.mainTagId!==main) return false;
+
+        if(subSearch){
+          const st = findSub(r.subTagId);
+          const name = (st?st.name:"").toLowerCase();
+          if(!name.includes(subSearch)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderHistory(){
+      refreshTagSelects();
+
+      const tbody = document.getElementById("historyBody");
+      const empty = document.getElementById("historyEmpty");
+
+      const list = filterRecords().slice().sort((a,b)=>{
+        const ad = new Date(a.date), bd = new Date(b.date);
+        if(bd - ad !== 0) return bd - ad;
+        return (b._created||0) - (a._created||0);
+      });
+
+      tbody.innerHTML = "";
+      if(!list.length){
+        empty.style.display = "block";
+        return;
+      }
+      empty.style.display = "none";
+
+      list.forEach(r=>{
+        const mt = findMain(r.mainTagId);
+        const st = findSub(r.subTagId);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.date}</td>
+          <td>${r.start}</td>
+          <td>${r.end}</td>
+          <td>${mt?mt.name:"（不明）"}</td>
+          <td>${st?st.name:"—"}</td>
+          <td class="r">${yen(r.invest)}</td>
+          <td class="r">${yen(r.return)}</td>
+          <td class="r">${r.balance>0?"+":""}${yen(r.balance)}</td>
+          <td class="c">${fmtMinutes(r.playMinutes)}</td>
+          <td class="r">${r.hourly==null?"-":yen(r.hourly)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ===== Tags Page =====
+    function renderTags(){
+      refreshTagSelects();
+
+      const list = document.getElementById("tagList");
+      list.innerHTML = "";
+
+      if(!tags.length){
+        list.innerHTML = `<div class="note">まだタグがありません。左で大タグを追加してください。</div>`;
+        return;
+      }
+
+      tags
+        .slice()
+        .sort((a,b)=>a.name.localeCompare(b.name,"ja"))
+        .forEach(mt=>{
+          const wrap = document.createElement("div");
+          wrap.style.border = "1px solid var(--border)";
+          wrap.style.background = "rgba(15,23,48,.45)";
+          wrap.style.borderRadius = "14px";
+          wrap.style.padding = "10px";
+          wrap.style.marginBottom = "10px";
+
+          const head = document.createElement("div");
+          head.style.display="flex";
+          head.style.alignItems="center";
+          head.style.justifyContent="space-between";
+          head.style.gap="8px";
+          head.innerHTML = `<div style="font-weight:800;">${mt.name}</div><div style="color:var(--muted); font-size:.75rem;">中タグ ${mt.subs.length}件</div>`;
+          wrap.appendChild(head);
+
+          const subs = document.createElement("div");
+          subs.style.display="flex";
+          subs.style.flexWrap="wrap";
+          subs.style.gap="6px";
+          subs.style.marginTop="8px";
+
+          if(!mt.subs.length){
+            subs.innerHTML = `<div class="note" style="margin:0;">中タグなし</div>`;
+          }else{
+            mt.subs
+              .slice()
+              .sort((a,b)=>a.name.localeCompare(b.name,"ja"))
+              .forEach(st=>{
+                const chip = document.createElement("div");
+                chip.style.border="1px solid var(--border)";
+                chip.style.background="rgba(7,10,20,.75)";
+                chip.style.borderRadius="999px";
+                chip.style.padding="4px 10px";
+                chip.style.fontSize=".78rem";
+                chip.textContent = st.name;
+                subs.appendChild(chip);
+              });
+          }
+
+          wrap.appendChild(subs);
+          list.appendChild(wrap);
+        });
+    }
+
+    function addMainTag(){
+      const name = document.getElementById("tNewMain").value.trim();
+      if(!name){ alert("大タグ名を入力してください。"); return; }
+      if(tags.some(t=>t.name===name)){ alert("同名の大タグが存在します。"); return; }
+      tags.push({id: genId("mt"), name, subs: []});
+      document.getElementById("tNewMain").value = "";
+      save();
+      renderTags();
+      renderAdd();
+      renderHistory();
+      renderDashboard();
+    }
+
+    function addSubTag(){
+      const parentId = document.getElementById("tParentMain").value;
+      const name = document.getElementById("tNewSub").value.trim();
+      if(!parentId){ alert("大タグを選択してください。"); return; }
+      if(!name){ alert("中タグ名を入力してください。"); return; }
+      const mt = findMain(parentId);
+      if(!mt){ alert("大タグが見つかりません。"); return; }
+      if(mt.subs.some(s=>s.name===name)){ alert("同名の中タグが既に存在します。"); return; }
+      mt.subs.push({id: genId("st"), name});
+      document.getElementById("tNewSub").value = "";
+      save();
+      renderTags();
+      renderAdd();
+      renderHistory();
+      renderDashboard();
+    }
+
+    // ===== Wire events =====
+    window.addEventListener("DOMContentLoaded", ()=>{
+      load();
+
+      // init calendar view month
+      const now = new Date();
+      viewYear = now.getFullYear();
+      viewMonth = now.getMonth();
+
+      // calendar buttons
+      document.getElementById("btnPrev").addEventListener("click", prevMonth);
+      document.getElementById("btnNext").addEventListener("click", nextMonth);
+      document.getElementById("btnToday").addEventListener("click", goThisMonth);
+
+      // add page
+      document.getElementById("addForm").addEventListener("submit", addRecordFromForm);
+      document.getElementById("fMain").addEventListener("change", refreshSubForAdd);
+      document.getElementById("btnGoTags").addEventListener("click", ()=>{ location.hash="#/tags"; });
+
+      // history filters
+      document.getElementById("hPeriod").addEventListener("change", renderHistory);
+      document.getElementById("hMain").addEventListener("change", renderHistory);
+      document.getElementById("hSubSearch").addEventListener("input", renderHistory);
+
+      // tags page
+      document.getElementById("tAddMain").addEventListener("click", addMainTag);
+      document.getElementById("tAddSub").addEventListener("click", addSubTag);
+
+      // routing
+      window.addEventListener("hashchange", router);
+
+      // default route
+      if(!location.hash) location.hash="#/dashboard";
+      router();
+    });
+  </script>
+</body>
+</html>
