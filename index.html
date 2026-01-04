@@ -257,9 +257,12 @@
       gap:8px;
     }
     .day .amt{
-      font-size:.95rem;
-      font-weight:800;
-      letter-spacing:.01em;
+  font-size:.72rem;              /* ← 小さくする */
+  font-weight:700;
+  letter-spacing:0;              /* ← 桁ズレ防止 */
+  line-height:1.1;
+  white-space:nowrap;            /* ← 折り返さない */
+  font-variant-numeric: tabular-nums; /* ← 桁幅固定（重要） */
     }
     .day .amt.positive{color:var(--success)}
     .day .amt.negative{color:var(--danger)}
@@ -1368,3 +1371,4 @@
   </script>
 </body>
 </html>
+
